@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>건강 지킴이: 가공식품 타격대 💥</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        :root {
+            --primary-color: #22c55e;
+            --primary-dark: #15803d;
+            --accent-color: #f59e0b;
+            --danger-color: #ef4444;
+            --bg-color: #f0fdf4;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            touch-action: manipulation;
+        }
+
+        /* CONTAINER */
+        .game-container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border: 4px solid var(--primary-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* HEADER & DASHBOARD */
+        .header {
+            text-align: center;
+        }
+
+        .title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary-dark);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: #4b5563;
+            background: #e0f2fe;
+            padding: 6px 12px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .dash-card {
+            background: #ffffff;
+            padding: 8px 4px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .dash-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .dash-value {
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .val-score { color: #2563eb; }
+        .val-time { color: var(--danger-color); }
+        .val-high { color: var(--accent-color); }
+
+        /* GAME BOARD & HOLES */
+        .board-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background: #86efac;
+            border-radius: 20px;
+            border: 4px solid #16a34a;
+            padding: 12px;
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 12px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .hole-cell {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 16px;
+        }
+
+        .hole-bg {
+            position: absolute;
+            bottom: 4%;
+            width: 88%;
+            height: 32%;
+            background: #451a03;
+            border-radius: 50%;
+            box-shadow: inset 0 8px 12px rgba(0,0,0,0.7);
+            z-index: 1;
+        }
+
+        .hole-front {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 20%;
+            background: #4ade80;
+            border-radius: 0 0 16px 16px;
+            z-index: 3;
+            border-top: 3px solid #16a34a;
+        }
+
+        .food-item {
+            position: absolute;
+            bottom: 12%;
+            z-index: 2;
+            transform: translateY(140%);
+            transition: transform 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            touch-action: manipulation;
+            display: flex;
+            flex-direction: column; /* 이름 라벨을 위, 이모지를 아래에 배치 */
+            align-items: center;
+            justify-content: flex-end;
+            width: 100%;
+        }
+
+        .food-item.active {
+            transform: translateY(-12%);
+        }
+
+        .food-icon {
+            font-size: clamp(3.2rem, 11vw, 4.5rem);
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+            line-height: 1;
+            margin-top: -2px; /* 간격을 좁히기 위해 위쪽 마진 조정 */
+        }
+
+        .food-label {
+            font-size: clamp(0.75rem, 2.8vw, 0.95rem);
+            font-weight: 800;
+            color: #ffffff;
+            background: #0f172a; /* 시독성을 극대화한 진한 어두운 배경 */
+            padding: 2px 8px; /* 패딩을 약간 줄여 밀도감 향상 */
+            border-radius: 8px;
+            margin-bottom: 0px; /* 이모지와의 간격을 최소화 */
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            letter-spacing: -0.5px;
+            border: 1.5px solid #38bdf8; /* 명확한 파란색 테두리로 가독성 강화 */
+            pointer-events: none;
+            line-height: 1.1;
+            z-index: 5;
+        }
+
+        /* FLOATING SCORE EFFECT */
+        .float-text {
+            position: absolute;
+            font-weight: 900;
+            font-size: 1.4rem;
+            z-index: 20;
+            pointer-events: none;
+            animation: floatUp 0.75s ease-out forwards;
+            text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-40px) scale(1.3); opacity: 0; }
+        }
+
+        /* CONTROLS */
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 18px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 rgba(0,0,0,0.2);
+        }
+
+        .btn-start {
+            background-color: var(--accent-color);
+            color: #78350f;
+            box-shadow: 0 5px 0 #d97706;
+        }
+
+        .btn-sound {
+            flex: 0 0 60px;
+            background-color: #e5e7eb;
+            color: #374151;
+            box-shadow: 0 5px 0 #9ca3af;
+        }
+
+        /* MODAL DIALOG */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 24px;
+            width: 100%;
+            max-width: 420px;
+            max-height: 85vh;
+            overflow-y: auto;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.25s ease;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+        }
+
+        .modal-overlay.open .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+            font-weight: 800;
+        }
+
+        .modal-score {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #2563eb;
+            margin: 10px 0;
+        }
+
+        .modal-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+
+        .modal-desc {
+            font-size: 0.95rem;
+            color: #4b5563;
+            line-height: 1.4;
+            background: #f9fafb;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        /* NUTRITION CARDS IN MODAL */
+        .nutrition-section {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .nutrition-title {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #374151;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .nutrition-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .nutri-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f3f4f6;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+
+        .nutri-card .icon {
+            font-size: 1.5rem;
+        }
+
+        .nutri-card .details {
+            flex: 1;
+        }
+
+        .nutri-card .name {
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .nutri-card .info {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        /* SHAKE ANIMATION */
+        .shake {
+            animation: shakeAnim 0.3s ease-in-out;
+        }
+
+        @keyframes shakeAnim {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container" id="mainContainer">
+    <div class="header">
+        <div class="title">건강 지킴이 💥</div>
+        <div class="subtitle">가공식품은 터치! 자연식품은 보호!</div>
+    </div>
+
+    <div class="dashboard">
+        <div class="dash-card">
+            <div class="dash-label">점수</div>
+            <div class="dash-value val-score" id="scoreTxt">0</div>
+        </div>
+        <div class="dash-card">
+            <div class="dash-label">남은 시간</div>
+            <div class="dash-value val-time" id="timeTxt">30초</div>
+        </div>
+        <div class="dash-card">
+            <div class="dash-label">최고 기록</div>
+            <div class="dash-value val-high" id="highScoreTxt">0</div>
+        </div>
+    </div>
+
+    <div class="board-wrapper">
+        <div class="game-grid" id="gameGrid">
+            <!-- 9 Holes generated by JavaScript -->
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-sound" id="soundBtn" aria-label="음소거 토글">🔊</button>
+        <button class="btn btn-start" id="startBtn">게임 시작!</button>
+    </div>
+</div>
+
+<!-- RESULT MODAL -->
+<div class="modal-overlay" id="resultModal">
+    <div class="modal-card">
+        <div class="modal-title">게임 종료!</div>
+        <div class="modal-badge" id="resultGrade">SSS등급</div>
+        <div class="modal-score" id="resultScore">120점</div>
+        <div class="modal-desc" id="resultDesc">설명 문구</div>
+
+        <div class="nutrition-section">
+            <div class="nutrition-title">💡 영양 정보 오답 노트</div>
+            <div class="nutrition-list" id="nutritionList">
+                <!-- Dynamic cards -->
+            </div>
+        </div>
+
+        <button class="btn btn-start" id="restartBtn" style="width: 100%;">다시 도전하기</button>
+    </div>
+</div>
+
+<script>
+    const PROCESSED_FOODS = [
+        { icon: '🍔', name: '햄버거', info: '고열량·포화지방 높음 (비만 유발)' },
+        { icon: '🍟', name: '감자튀김', info: '나트륨 및 트랜스지방 주의' },
+        { icon: '🍕', name: '피자', info: '포화지방 및 나트륨 과다' },
+        { icon: '🌭', name: '핫도그', info: '가공육의 아질산나트륨 포함' },
+        { icon: '🍩', name: '도넛', info: '당류 및 혈당 급상승 과다' },
+        { icon: '🥤', name: '탄산음료', info: '당류 과다 (각설탕 약 10개 분량)' },
+        { icon: '🍭', name: '막대사탕', info: '충치 및 단순당 비율 높음' },
+        { icon: '🍜', name: '라면', info: '하루 권장 나트륨 80% 이상 포함' },
+        { icon: '🥣', name: '시리얼', info: '초콜릿/설탕 코팅 단순당 과다' },
+        { icon: '🍙', name: '삼각김밥', info: '고나트륨 및 인공조미료 첨가' },
+        { icon: '🍬', name: '젤리', info: '인공색소 및 고농축 당류' },
+        { icon: '🧁', name: '컵케이크', info: '트랜스지방과 첨가당 위험' },
+        { icon: '🥫', name: '통조림', info: '보존제 및 가공 나트륨 다량 함유' },
+        { icon: '🌭', name: '소시지', info: '발색제 및 식품첨가물 포함' },
+        { icon: '🍫', name: '초콜릿', info: '포화지방과 당류 과다 섭취 유발' },
+        { icon: '🍿', name: '팝콘', info: '버터 가공 트랜스지방 및 시즈닝' }
+    ];
+
+    const HEALTHY_FOODS = [
+        { icon: '🍎', name: '사과', info: '풍부한 식이섬유 및 비타민 C' },
+        { icon: '🥦', name: '브로콜리', info: '항산화 물질 및 면역력 강화' },
+        { icon: '🥕', name: '당근', info: '시력 보호에 좋은 베타카로틴' },
+        { icon: '🥑', name: '아보카도', info: '건강한 단일불포화지방산' },
+        { icon: '🍌', name: '바나나', info: '체내 나트륨 배출 돕는 칼륨' },
+        { icon: '🐟', name: '생선', info: '두뇌 발달을 돕는 오메가-3' },
+        { icon: '🥛', name: '우유', info: '뼈 성장에 필수적인 칼슘' },
+        { icon: '🍠', name: '고구마', info: '혈당 완만히 올리는 착한 탄수화물' },
+        { icon: '🍅', name: '토마토', info: '항산화 특효 라이코펜 풍부' },
+        { icon: '🫐', name: '블루베리', info: '안토시아닌 풍부한 슈퍼푸드' },
+        { icon: '🥚', name: '계란', info: '근육 성장에 좋은 최고 단백질' },
+        { icon: '🥜', name: '견과류', info: '두뇌 회전 돕는 착한 불포화지방' },
+        { icon: '🍓', name: '딸기', info: '피부 건강과 피로 회복 비타민 C' },
+        { icon: '🥬', name: '시금치', info: '빈혈 예방 철분과 칼슘의 왕' },
+        { icon: '🌽', name: '옥수수', info: '장 운동 활발하게 돕는 식이섬유' },
+        { icon: '🍉', name: '수박', info: '체수분 보충 및 노폐물 배출' }
+    ];
+
+    class SoundEngine {
+        constructor() {
+            this.ctx = null;
+            this.muted = false;
+        }
+
+        init() {
+            if (!this.ctx) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) this.ctx = new AudioCtx();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+        }
+
+        playHit() {
+            if (this.muted) return;
+            this.init();
+            if (!this.ctx) return;
+
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.1);
+            
+            gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.1);
+        }
+
+        playMistake() {
+            if (this.muted) return;
+            this.init();
+            if (!this.ctx) return;
+
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+            osc.frequency.setValueAtTime(160, this.ctx.currentTime + 0.1);
+
+            gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.25);
+        }
+
+        playBtn() {
+            if (this.muted) return;
+            this.init();
+            if (!this.ctx) return;
+
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+
+            gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.05);
+        }
+
+        playGameOver() {
+            if (this.muted) return;
+            this.init();
+            if (!this.ctx) return;
+
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.setValueAtTime(550, now + 0.1);
+            osc.frequency.setValueAtTime(700, now + 0.2);
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(now + 0.4);
+        }
+    }
+
+    const sound = new SoundEngine();
+
+    let score = 0;
+    let timeRemaining = 30;
+    let isPlaying = false;
+    let gameTimer = null;
+    let activeTimers = [];
+    let lastHoleIdx = -1;
+    let highScore = 0;
+    let encounteredFoods = new Map();
+
+    function loadHighScore() {
+        try {
+            const saved = localStorage.getItem('junk_whack_highscore');
+            return saved ? parseInt(saved, 10) : 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    function saveHighScore(val) {
+        try {
+            localStorage.setItem('junk_whack_highscore', val.toString());
+        } catch (e) {
+            // Safe fallback
+        }
+    }
+
+    const scoreTxt = document.getElementById('scoreTxt');
+    const timeTxt = document.getElementById('timeTxt');
+    const highScoreTxt = document.getElementById('highScoreTxt');
+    const gameGrid = document.getElementById('gameGrid');
+    const startBtn = document.getElementById('startBtn');
+    const soundBtn = document.getElementById('soundBtn');
+    const mainContainer = document.getElementById('mainContainer');
+
+    const resultModal = document.getElementById('resultModal');
+    const resultGrade = document.getElementById('resultGrade');
+    const resultScore = document.getElementById('resultScore');
+    const resultDesc = document.getElementById('resultDesc');
+    const nutritionList = document.getElementById('nutritionList');
+    const restartBtn = document.getElementById('restartBtn');
+
+    highScore = loadHighScore();
+    highScoreTxt.textContent = highScore;
+
+    const holes = [];
+    const foodIcons = [];
+    const foodLabels = [];
+
+    for (let i = 0; i < 9; i++) {
+        const holeCell = document.createElement('div');
+        holeCell.className = 'hole-cell';
+
+        const holeBg = document.createElement('div');
+        holeBg.className = 'hole-bg';
+
+        const foodEl = document.createElement('div');
+        foodEl.className = 'food-item';
+        foodEl.dataset.index = i;
+
+        const iconEl = document.createElement('span');
+        iconEl.className = 'food-icon';
+
+        const labelEl = document.createElement('span');
+        labelEl.className = 'food-label';
+
+        // 이름 라벨을 상단(첫 번째), 이모지를 하단(두 번째)으로 자식 요소 순서 변경
+        foodEl.appendChild(labelEl);
+        foodEl.appendChild(iconEl);
+
+        const holeFront = document.createElement('div');
+        holeFront.className = 'hole-front';
+
+        holeCell.appendChild(holeBg);
+        holeCell.appendChild(foodEl);
+        holeCell.appendChild(holeFront);
+        gameGrid.appendChild(holeCell);
+
+        foodEl.addEventListener('pointerdown', (e) => handleWhack(e, i));
+
+        holes.push(foodEl);
+        foodIcons.push(iconEl);
+        foodLabels.push(labelEl);
+    }
+
+    function startGame() {
+        sound.playBtn();
+        if (isPlaying) return;
+
+        score = 0;
+        timeRemaining = 30;
+        isPlaying = true;
+        encounteredFoods.clear();
+
+        scoreTxt.textContent = score;
+        timeTxt.textContent = `${timeRemaining}초`;
+        startBtn.disabled = true;
+        startBtn.style.opacity = '0.5';
+
+        gameTimer = setInterval(() => {
+            timeRemaining--;
+            timeTxt.textContent = `${timeRemaining}초`;
+
+            if (timeRemaining <= 0) {
+                endGame();
+            }
+        }, 1000);
+
+        scheduleNextPop();
+    }
+
+    function scheduleNextPop() {
+        if (!isPlaying) return;
+
+        let idx;
+        do {
+            idx = Math.floor(Math.random() * 9);
+        } while (idx === lastHoleIdx);
+        lastHoleIdx = idx;
+
+        const foodEl = holes[idx];
+        const iconEl = foodIcons[idx];
+        const labelEl = foodLabels[idx];
+
+        // 70% chance processed, 30% chance healthy
+        const isProcessed = Math.random() < 0.7;
+        const foodList = isProcessed ? PROCESSED_FOODS : HEALTHY_FOODS;
+        const selectedItem = foodList[Math.floor(Math.random() * foodList.length)];
+
+        iconEl.textContent = selectedItem.icon;
+        labelEl.textContent = selectedItem.name;
+
+        foodEl.dataset.type = isProcessed ? 'processed' : 'healthy';
+        foodEl.dataset.name = selectedItem.name;
+        foodEl.dataset.info = selectedItem.info;
+        foodEl.dataset.icon = selectedItem.icon;
+        foodEl.dataset.hittable = 'true';
+
+        foodEl.classList.add('active');
+
+        const speedFactor = timeRemaining > 15 ? 1 : 0.75;
+        const popDuration = (Math.random() * 400 + 750) * speedFactor;
+
+        const timerId = setTimeout(() => {
+            if (foodEl.classList.contains('active')) {
+                foodEl.classList.remove('active');
+            }
+            if (isPlaying) {
+                scheduleNextPop();
+            }
+        }, popDuration);
+
+        activeTimers.push(timerId);
+    }
+
+    function handleWhack(e, idx) {
+        if (!isPlaying) return;
+        e.preventDefault();
+
+        const foodEl = holes[idx];
+        if (foodEl.dataset.hittable !== 'true') return;
+
+        foodEl.dataset.hittable = 'false';
+        const isProcessed = foodEl.dataset.type === 'processed';
+        const foodName = foodEl.dataset.name;
+        const foodInfo = foodEl.dataset.info;
+        const icon = foodEl.dataset.icon;
+
+        encounteredFoods.set(foodName, { icon, name: foodName, info: foodInfo, isProcessed });
+
+        const rect = foodEl.getBoundingClientRect();
+        const containerRect = mainContainer.getBoundingClientRect();
+        const x = rect.left - containerRect.left + rect.width / 2;
+        const y = rect.top - containerRect.top;
+
+        if (isProcessed) {
+            score += 10;
+            sound.playHit();
+            createFloatText('+10', x, y, '#16a34a');
+        } else {
+            score -= 20;
+            sound.playMistake();
+            createFloatText('-20', x, y, '#dc2626');
+            mainContainer.classList.add('shake');
+            setTimeout(() => mainContainer.classList.remove('shake'), 300);
+        }
+
+        scoreTxt.textContent = score;
+        foodEl.classList.remove('active');
+    }
+
+    function createFloatText(text, x, y, color) {
+        const el = document.createElement('div');
+        el.className = 'float-text';
+        el.textContent = text;
+        el.style.left = `${x - 20}px`;
+        el.style.top = `${y}px`;
+        el.style.color = color;
+
+        mainContainer.appendChild(el);
+        setTimeout(() => el.remove(), 750);
+    }
+
+    function endGame() {
+        isPlaying = false;
+        clearInterval(gameTimer);
+        activeTimers.forEach(t => clearTimeout(t));
+        activeTimers = [];
+
+        holes.forEach(h => h.classList.remove('active'));
+
+        startBtn.disabled = false;
+        startBtn.style.opacity = '1';
+
+        sound.playGameOver();
+
+        if (score > highScore) {
+            highScore = score;
+            saveHighScore(highScore);
+            highScoreTxt.textContent = highScore;
+        }
+
+        renderResultModal();
+    }
+
+    function renderResultModal() {
+        resultScore.textContent = `${score}점`;
+
+        let grade = '';
+        let desc = '';
+
+        if (score >= 200) {
+            grade = '👑 SSS급 건강 파수꾼';
+            desc = '대단해요! 가공식품의 유혹을 완벽하게 이겨냈습니다. 최고수준의 식습관 인지력을 가지고 계시네요!';
+        } else if (score >= 100) {
+            grade = '🥇 A급 영양 수호자';
+            desc = '훌륭합니다! 가공식품과 자연식품을 신속하게 구분하셨어요. 실생활에서도 건강 식단을 유지해보세요!';
+        } else if (score >= 0) {
+            grade = '🥈 B급 식단 주의군';
+            desc = '아쉬워요! 가공식품을 조금 더 빠르게 골라내고, 몸에 좋은 신선한 채소와 과일은 보호해 주세요.';
+        } else {
+            grade = '🚨 F급 브로콜리의 눈물';
+            desc = '경고! 건강한 자연식품을 너무 많이 공격하셨습니다. 신선한 원물 식품은 때리지 말고 아껴주세요!';
+        }
+
+        resultGrade.textContent = grade;
+        resultDesc.textContent = desc;
+
+        nutritionList.innerHTML = '';
+        if (encounteredFoods.size === 0) {
+            nutritionList.innerHTML = '<div style="color:#9ca3af; text-align:center; padding:10px;">플레이한 식품 정보가 없습니다.</div>';
+        } else {
+            encounteredFoods.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'nutri-card';
+                card.innerHTML = `
+                    <div class="icon">${item.icon}</div>
+                    <div class="details">
+                        <div class="name">${item.name} <span style="font-size:0.7rem; color:${item.isProcessed ? '#dc2626' : '#16a34a'}">(${item.isProcessed ? '가공식품' : '자연식품'})</span></div>
+                        <div class="info">${item.info}</div>
+                    </div>
+                `;
+                nutritionList.appendChild(card);
+            });
+        }
+
+        resultModal.classList.add('open');
+    }
+
+    soundBtn.addEventListener('click', () => {
+        sound.muted = !sound.muted;
+        soundBtn.textContent = sound.muted ? '🔇' : '🔊';
+    });
+
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', () => {
+        sound.playBtn();
+        resultModal.classList.remove('open');
+        setTimeout(startGame, 200);
+    });
+</script>
+</body>
+</html>
